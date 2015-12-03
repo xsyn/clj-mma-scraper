@@ -1,0 +1,44 @@
+[
+ ;;------ Event Data Type
+ {:db/id #db/id[:db.part/db]
+  :db/ident :event/name
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Name of the UFC event"
+  :db/unique :db.unique/identity
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :event/url
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "FightMetric URL"
+  :db/unique :db.unique/identity
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :event/date
+  :db/valueType :db.type/instant
+  :db/cardinality :db.cardinality/one
+  :db/doc "Date of UFC event"
+  :db/unique :db.unique/identity
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :event/location
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Location of UFC event"
+  :db/unique :db.unique/identity
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :event/type
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "One of UFC/Fight Night/on Fox/Ultimate Fighter"
+  :db/index true
+  :db.install/_attribute :db.part/db}
+
+ ;;------ Fight Data Type
+ ]
