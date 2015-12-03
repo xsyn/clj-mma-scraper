@@ -60,16 +60,24 @@
 (defn get-href [element]
   (get-in element [:attrs :href]))
 
+(defn get-content [element path]
+  (str/trim (first (:content (html-select-first element path)))))
+
 (defn extract-type-from-name [name]
+  "Handles "
   (cond (.contains name "on Fox") "Fox"
         (.contains name "Ultimate Fighter") "Ultimate Fighter"
         (.contains name "Fight Night") "Fight Night"
         :else "UFC"))
 
 (defn format-date [datestring]
+  "Turns 'November 29, 2015' into #inst date format for datomic"
   (c/to-date (tf/parse (tf/formatter "MMMM dd, YYYY") datestring)))
 
+;; CRUD functions
+
 (defn insert-event-into-db [event-name event-url event-date event-location event-type]
+  "Transaciton to insert events into Datomic"
   @(d/transact conn [{:db/id #db/id[:db.part/db]
                       :event/name event-name
                       :event/url event-url
@@ -80,18 +88,25 @@
 ;; Scraping stuff
 
 (defn get-all-events [url]
-  (rest
-   (html/select (fetch-body url) [:table.b-statistics__table-events :tbody :tr.b-statistics__table-row])))
+  "Pulls the event table from FightMetric"
+  (let [body (fetch-body url)]
+    (cond (nil? body) nil
+          :else (rest (html/select body [:table.b-statistics__table-events :tbody :tr.b-statistics__table-row])))))
 
-(defn map-event-metadata [row]
-  "This function does a lot, it may be worth splitting it up. There's some messing grabbing of the actual content from the page, sanitizeing it, and then it creates a map."
-  (let [event-url (get-href
-                   (html-select-first row [:tr :> [:td (html/nth-of-type 1)] :i :a]))
-        event-name (str/trim (first (:content (html-select-first row [:tr :> [:td (html/nth-of-type 1)] :i :a]))))
-        event-date (format-date (str/trim (first (:content (html-select-first row [:tr :> [:td (html/nth-of-type 1)] :i :span] )))))
-        event-location (str/trim (first (:content
-                                         (html-select-first row  [:tr :> [:td (html/nth-of-type 2)]]))))]
-    (insert-event-into-db event-name (URI. event-url) event-date event-location (extract-type-from-name event-name))))
+
+;; This function may be worth splitting up
+(defn insert-event-metadata [row]
+  "Takes FightMetric event table, iterates through trs, scrapes data, sanitizes and then inputs into Datomic."
+  (cond (nil? row) nil
+        :else (let [event-url (get-href (html-select-first row [:tr :> [:td (html/nth-of-type 1)] :i :a]))
+                    event-name (get-content row [:tr :> [:td (html/nth-of-type 1)] :i :a])
+                    event-date (get-content row [:tr :> [:td (html/nth-of-type 1)] :i :span])
+                    event-location (get-content row  [:tr :> [:td (html/nth-of-type 2)]])]
+                (insert-event event-name
+                              (URI. event-url)
+                              (format-date event-date)
+                              event-location
+                              (extract-type-from-name event-name)))))
 
 
 
