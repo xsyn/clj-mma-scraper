@@ -23,10 +23,17 @@
 
 (def uri "datomic:free://localhost:4334/mma-stats")
 
-;; Create database
-(d/create-database uri)
-
 (def conn (d/connect uri))
+
+;; Create database
+(defn initialize-db [uri]
+  "Drops the database if it exists. Creats a new DB with schema"
+  (if (false? (d/create-database uri))(do (d/delete-database uri)
+                                          (initialize-db uri))
+      (let [schema-tx (read-string (slurp "resources/schema.edn"))]
+        (do
+          (d/create-database uri)
+          (d/transact (d/connect uri) schema-tx)))))
 
 
 ;; Setup scraper
@@ -47,10 +54,9 @@
 
 (defn fetch-body [url]
   (let [check-url (get-url url)]
-    (if (nil? check-url)
-      nil
-      (html/html-resource (java.io.StringReader.
-                           (:body check-url))))))
+    (if (nil? check-url) nil
+        (html/html-resource (java.io.StringReader.
+                             (:body check-url))))))
 
 ;; Utility functions
 
@@ -65,10 +71,10 @@
 
 (defn extract-type-from-name [name]
   "Handles "
-  (cond (.contains name "on Fox") "Fox"
-        (.contains name "Ultimate Fighter") "Ultimate Fighter"
-        (.contains name "Fight Night") "Fight Night"
-        :else "UFC"))
+  (cond (.contains name "on Fox") :event.type/fox
+        (.contains name "Ultimate Fighter") :event.type/ultimatefighter
+        (.contains name "Fight Night") :event.type/fightnight
+        :else :event.type/ufc))
 
 (defn format-date [datestring]
   "Turns 'November 29, 2015' into #inst date format for datomic"
@@ -76,7 +82,7 @@
 
 ;; CRUD functions
 
-(defn insert-event-into-db [event-name event-url event-date event-location event-type]
+(defn insert-event [event-name event-url event-date event-location event-type]
   "Transaciton to insert events into Datomic"
   @(d/transact conn [{:db/id #db/id[:db.part/db]
                       :event/name event-name
@@ -108,6 +114,12 @@
                               event-location
                               (extract-type-from-name event-name)))))
 
+
+
+;; Complete crawl
+(-> (map insert-event-metadata)
+    (get-all-events)
+    events-url)
 
 
 

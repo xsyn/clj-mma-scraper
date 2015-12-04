@@ -34,11 +34,336 @@
 
  {:db/id #db/id[:db.part/db]
   :db/ident :event/type
-  :db/valueType :db.type/string
+  :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
   :db/doc "One of UFC/Fight Night/on Fox/Ultimate Fighter"
+  :db.install/_attribute :db.part/db}
+
+ [:db/add #db/id[:db.part/user] :db/ident :event.type/ufc]
+ [:db/add #db/id[:db.part/user] :db/ident :event.type/fox]
+ [:db/add #db/id[:db.part/user] :db/ident :event.type/ultimatefighter]
+ [:db/add #db/id[:db.part/user] :db/ident :event.type/fightnight]
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :event/fight
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "Fights on this event's card"
   :db/index true
   :db.install/_attribute :db.part/db}
 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :event/attendance
+  :db/valueType :db.type/long
+  :db/doc "Number of people in attendance"
+  :db.install/_attribute}
+
  ;;------ Fight Data Type
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fight/url
+  :db/valueType :db.type/uri
+  :db/cardinality :db.cardinality/one
+  :db/doc "Unique url to get to fight metric page"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fight/stats
+  :db/isComponent true
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "Stats of a fight"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fight/weightclass
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "Weigthclass the fight took place in"
+  :db.install/_attribute :db.part/db}
+
+ [:db/add #db/id[:db.part/user] :db/ident :fight.weightclass/womansstrawweight]
+ [:db/add #db/id[:db.part/user] :db/ident :fight.weightclass/flyweight]
+ [:db/add #db/id[:db.part/user] :db/ident :fight.weightclass/bantamweight]
+ [:db/add #db/id[:db.part/user] :db/ident :fight.weightclass/womensbantamweight]
+ [:db/add #db/id[:db.part/user] :db/ident :fight.weightclass/featherweight]
+ [:db/add #db/id[:db.part/user] :db/ident :fight.weightclass/lightweight]
+ [:db/add #db/id[:db.part/user] :db/ident :fight.weightclass/welterweight]
+ [:db/add #db/id[:db.part/user] :db/ident :fight.weightclass/middleweight]
+ [:db/add #db/id[:db.part/user] :db/ident :fight.weightclass/lightheavyweight]
+ [:db/add #db/id[:db.part/user] :db/ident :fight.weightclass/heavyweight]
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fight/time
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Time fight took to finish in seconds"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db.ident :fight/rounds
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Rounds the fight took"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db.ident :fight/method
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "How was the fight finished (e.g. Decision, Submission etc)"
+  :db/index true
+  :db.install/_attribute :db.part/db}
+
+ ;;------ Fighter Data Type
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fighter/name
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Fighter Name"
+  :db/index true
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fighter/fights
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/many
+  :db/doc "Fights a fighter has had"
+  :db/index true
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fighter/nickname
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "Fighter Nickname"
+  :db/index true
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fighter/height
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Fighter height in inches"
+  :db.install/_attribute :db.part/db
+  }
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fighter/stance
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "Fighter stance"
+  :db.install/_attribute :db.part/db
+  }
+
+ [:db/add #db/id[:db.part/user] :db/ident :fighter.stance/orthodox]
+ [:db/add #db/id[:db.part/user] :db/ident :fighter.stance/southpaw]
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fighter/dob
+  :db/valueType :db.type/inst
+  :db/cardinality :db.cardinality/one
+  :db/doc "Fighter's Date of Birth"
+  :db.install/_attribute :db.part/db
+  }
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/stance
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "Fighter stance"
+  :db.install/_attribute :db.part/db
+  }
+
+ ;;------ Fighter Stat Data Type
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/fighter
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "Fighter that these stats below to"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/fight
+  :db/valueType :db.type/ref
+  :db/cardinality :db.cardinality/one
+  :db/doc "Fight that these stats below to"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/kd
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Knockdowns"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/sigsthrown
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Significant strikes thrown"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/sigslanded
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Significant strikes landed"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/sigsthrown
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Total strikes thrown"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/sigslanded
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Total strikes landed"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/tdattempted
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Takedowns attempted"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/tdsuccess
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Successful takedowns"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/subattempt
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Submission attempts"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/pass
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Passes"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/reversal
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Successful reversals"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/headthrown
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Head strikes thrown"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/headlanded
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Head strikes landed"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/bodythrown
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Body strikes thrown"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/bodylanded
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Body strikes landed"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/legsthrown
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Leg strikes thrown"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/leglanded
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Leg strikes landed"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/distancethrown
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Strikes from distance thrown"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/distancelanded
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Total strikes landed"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/clinchthrown
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Total strikes in clinch thrown"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/clinchlanded
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Total strikes in clinch landed"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/groundthrown
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Total strikes on ground thrown"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :stats/groundthrown
+  :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
+  :db/doc "Total strikes on ground landed"
+  :db.install/_attribute :db.part/db}
+ ;; Need to manually create
+ ;; - Significant strike percentage
+ ;; - Takedown percentage
+
+
+ ;; Career Statistics
+ ;;
+ ;; These are actually kept on the page (e.g.
+ ;;http://fightmetric.com/fighter-details/8bdac25ce0bb874d)
+ ;; but I feel they should be established through code/logic, I'm just
+ ;;noting them here completeness. I'll delete this comment section
+ ;;once it's built
+ ;;
+ ;; SLpM - Significant Strikes Landed per Minute
+ ;; Str. Acc. - Significant Striking Accuracy
+ ;; SApM - Significant Strikes Absorbed per Minute
+ ;; Str. Def. - Significant Strike Defence (the % of opponents strikes that did not land)
+ ;; TD Avg. - Average Takedowns Landed per 15 minutes
+ ;; TD Acc. - Takedown Accuracy
+ ;; TD Def. - Takedown Defense (the % of opponents TD attempts that did not land)
+ ;; Sub. Avg. - Average Submissions Attempted per 15 minutes
+
  ]

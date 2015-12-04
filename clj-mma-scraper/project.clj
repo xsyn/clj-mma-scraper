@@ -13,5 +13,5 @@
                  [com.taoensso/timbre "4.1.4"]]
   :profiles {:dev
              {:datomic {:config "resources/transactor.properties"
-                        :db-uri "datomic:free://127.0.0.1/mma-stats"}}}
+                        :db-uri "datomic:free://localhost:4334/mma-stats"}}}
   :datomic {:schemas ["resources" ["schema.edn"]]})
