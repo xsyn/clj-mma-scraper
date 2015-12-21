@@ -217,16 +217,14 @@
   "Returns a map of links, to the actual fights from a card, attached to fights. This could be two function, but I want to make a single call to the url."
   (when url
     (let [body (fetch-body url)]
-      (interleave
-       (map #(hash-map :fight %)
-            (map get-data-link (html/select body [:tbody :tr])))
-       (map #(hash-map :fighters %)
-            (get-fighters-url-from-card-body body))))))
-;;
-;; TODO: (mapv #(-> (into {} %)) (partition 2 (scrape-links-from-card "http://www.fightmetric.com/event-details/e670f8cc2969a789")))
-;;
-
-
+      (map #(assoc % :event url)
+           (map #(-> (into {} %))
+                (partition 2
+                           (interleave
+                            (map #(hash-map :fight %)
+                                 (map get-data-link (html/select body [:tbody :tr])))
+                            (map #(hash-map :fighters %)
+                                 (get-fighters-url-from-card-body body)))))))))
 
 (defn get-all-events [url]
   "Returns a collection of event-urls, which are of all the UFC events ever."
@@ -275,7 +273,8 @@
   (defn insert-data []
     (->>
      (db-current?)
-     (map scrape-links-from-card))))
+     (map scrape-links-from-card)
+     (map insert-fight-and-fights))))
 
 
 
