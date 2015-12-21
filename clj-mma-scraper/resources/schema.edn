@@ -5,7 +5,6 @@
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
   :db/doc "Name of the UFC event"
-  :db/unique :db.unique/identity
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
@@ -21,7 +20,6 @@
   :db/valueType :db.type/instant
   :db/cardinality :db.cardinality/one
   :db/doc "Date of UFC event"
-  :db/unique :db.unique/identity
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
@@ -29,7 +27,6 @@
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
   :db/doc "Location of UFC event"
-  :db/unique :db.unique/identity
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
@@ -55,13 +52,14 @@
  {:db/id #db/id[:db.part/db]
   :db/ident :event/attendance
   :db/valueType :db.type/long
+  :db/cardinality :db.cardinality/one
   :db/doc "Number of people in attendance"
-  :db.install/_attribute}
+  :db.install/_attribute :db.part/db}
 
  ;;------ Fight Data Type
  {:db/id #db/id[:db.part/db]
   :db/ident :fight/url
-  :db/valueType :db.type/uri
+  :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
   :db/doc "Unique url to get to fight metric page"
   :db.install/_attribute :db.part/db}
@@ -100,14 +98,14 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db.ident :fight/rounds
+  :db/ident :fight/rounds
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
   :db/doc "Rounds the fight took"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db.ident :fight/method
+  :db/ident :fight/method
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
   :db/doc "How was the fight finished (e.g. Decision, Submission etc)"
@@ -115,14 +113,14 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db.ident :fight/winner
+  :db/ident :fight/winner
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
   :db/doc "Fight winner"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db.ident :fight/loser
+  :db/ident :fight/loser
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/one
   :db/doc "Fight loser"
@@ -175,7 +173,7 @@
 
  {:db/id #db/id[:db.part/db]
   :db/ident :fighter/dob
-  :db/valueType :db.type/inst
+  :db/valueType :db.type/instant
   :db/cardinality :db.cardinality/one
   :db/doc "Fighter's Date of Birth"
   :db.install/_attribute :db.part/db
@@ -227,14 +225,14 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :stats/sigsthrown
+  :db/ident :stats/totalthrown
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
   :db/doc "Total strikes thrown"
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :stats/sigslanded
+  :db/ident :stats/totallanded
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
   :db/doc "Total strikes landed"
@@ -353,7 +351,7 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
-  :db/ident :stats/groundthrown
+  :db/ident :stats/groundlanded
   :db/valueType :db.type/long
   :db/cardinality :db.cardinality/one
   :db/doc "Total strikes on ground landed"
