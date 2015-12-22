@@ -75,10 +75,12 @@
 
 ;; Standard Utility functions
 
+(def formatter (tf/formatter "MMMM dd, YYYY"))
+
 (defn format-date [datestring]
   "Turns 'November 29, 2015' into #inst date format for datomic"
   (let [cleandate (if (= datestring "--") "January 01, 1900" datestring)]
-    (c/to-date (tf/parse (tf/formatter "MMMM dd, YYYY") cleandate))))
+    (c/to-date (tf/parse formatter cleandate))))
 
 ;; HTML Utility functions
 
