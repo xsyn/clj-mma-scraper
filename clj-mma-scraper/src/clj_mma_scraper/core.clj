@@ -89,7 +89,9 @@
   (get-in element [:attrs :data-link]))
 
 (defn get-content [element path]
-  (str/trim (first (:content (html-select-first element path)))))
+  (let [content (first (:content (html-select-first element path)))]
+    (when content
+      (str/trim content))))
 
 (defn clean-weight-division [weight-string]
   (str/trim (str/replace weight-string #"Bout" "")))
@@ -148,14 +150,24 @@
   (Integer/parseInt
    (re-find #"\d+" s)))
 
+(defn inches->cm [x]
+  (let [size (if (string? x)
+               (get-number x)
+               x)
+        inches 2.54]
+    (* inches size)))
+
 (defn feet->cm [s]
   (let [size (map get-number (str/split s #"'"))
-        inches 2.54
         feet 30.48]
     (+ (* (first size) feet)
-       (* (second size) inches))))
+       (inches->cm (second size)))))
 
-;; TODO: Get attendance string->int working
+(defn pounds->kg [s]
+  (let [weight (get-number s)
+        pounds 0.453592]
+    (* weight pounds)))
+
 (defn get-event-details [event-url]
   "Takes in a url that maps to a FightMetric event, and creates a map of it's data."
   (when event-url
@@ -171,19 +183,15 @@
        :event/date (format-date event-date)
        :event/location event-location
        :event/type (extract-type-from-name event-name)
-                                        ;:event/attendance (parse-int (str/replace event-attendance
-                                        ;#"," ""))
+       :event/attendance (get-number (str/replace event-attendance #"," ""))
        })))
-
-;; One of the things that is missing is Record, but I believe this is
-;; a derived value
 
 (defn get-fighter-details [fighter-url]
   "Returns a map after scraping fighters page"
   (when fighter-url
     (let [b (page-container fighter-url)
           name (html-get-name b)
-          nickname (get-content b [:p :content]) ;; Check to see if empty
+          nickname (get-content b [:p.b-content__Nickname]) ;; Check to see if empty
           [height
            weight
            reach
@@ -192,8 +200,12 @@
       {:fighter/name name
        :fighter/url fighter-url
        :fighter/nickname nickname
-       :fighter/height (feet->cm )})))
-
+       :fighter/height (feet->cm height)
+       :fighter/weight (pounds->kg weight)
+       :fighter/reach (inches->cm reach)
+       :fighter/stance stance
+       :fighter/dob (format-date dob)
+       })))
 
 (defn get-fight-items [body]
   "Passing in an html body, returns a map of fight-items, including round, time, time format, referee and details"
@@ -338,3 +350,5 @@
 ;; (get-all-events)
 ;; (is there a difference between events in the db and events in the
 ;; list?, if so insert new ones, and return all-event-urls from db)
+;; ;; One of the things that is missing is the Fighter Record, but I believe this is
+;; a derived value
