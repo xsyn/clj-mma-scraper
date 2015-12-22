@@ -121,6 +121,16 @@
 (defn parse-int [s]
   (Integer. (re-find  #"\d+" s )))
 
+(defn page-container [url]
+  (html/select (fetch-body url) [:div.l-page__container]))
+
+(defn html-get-name [html]
+  (get-text-first html [:h2 :span]))
+
+(defn clean-box [html path]
+  (map clean-detail-string
+       (map html/text (html/select html path))))
+
 ;; CRUD functions
 
 (defn get-all-event-urls[]
@@ -134,19 +144,28 @@
 (defn make-event-tx [m]
   (assoc m :db/id (d/tempid :db.part/user)))
 
+(defn get-number [s]
+  (Integer/parseInt
+   (re-find #"\d+" s)))
+
+(defn feet->cm [s]
+  (let [size (map get-number (str/split s #"'"))
+        inches 2.54
+        feet 30.48]
+    (+ (* (first size) feet)
+       (* (second size) inches))))
+
 ;; TODO: Get attendance string->int working
 (defn get-event-details [event-url]
   "Takes in a url that maps to a FightMetric event, and creates a map of it's data."
   (when event-url
-    (let [b (html/select (fetch-body event-url) [:div.l-page__container])
-          event-name (get-text-first b [:h2 :span])
+    (let [b (page-container event-url)
+          event-name (html-get-name b)
           ;; use positional destructuring to pull out values
           ;; from 0, 1, 2 indexes of vector
           [event-date
            event-location
-           event-attendance] (->> (html/select b [:div.b-fight-details :div :ul :li])
-                                  (map html/text)
-                                  (map clean-detail-string))]
+           event-attendance] (clean-box b [:div.b-fight-details :div :ul :li])]
       {:event/name event-name
        :event/url event-url
        :event/date (format-date event-date)
@@ -155,6 +174,26 @@
                                         ;:event/attendance (parse-int (str/replace event-attendance
                                         ;#"," ""))
        })))
+
+;; One of the things that is missing is Record, but I believe this is
+;; a derived value
+
+(defn get-fighter-details [fighter-url]
+  "Returns a map after scraping fighters page"
+  (when fighter-url
+    (let [b (page-container fighter-url)
+          name (html-get-name b)
+          nickname (get-content b [:p :content]) ;; Check to see if empty
+          [height
+           weight
+           reach
+           stance
+           dob] (clean-box b [:div.b-fight-details.b-fight-details_margin-top :div.b-list__info-box.b-list__info-box_style_small-width.js-guide :ul :li])]
+      {:fighter/name name
+       :fighter/url fighter-url
+       :fighter/nickname nickname
+       :fighter/height (feet->cm )})))
+
 
 (defn get-fight-items [body]
   "Passing in an html body, returns a map of fight-items, including round, time, time format, referee and details"
@@ -235,13 +274,8 @@
                        (html-select-first row [:tr :> [:td (html/nth-of-type 1)] :i :a])))
              b)))))
 
-(defn create-url-map []
-  "Create a tree of urls, which will contain the universe of FightMetric's urls that are important to me"
-  (let [starting-url events-url
-        events-list (get-all-events starting-url)
-        fight-list (map scrape-links-from-card events-list)]
-    (interleave events-list fight-list)))
 
+;; Note: Abstract these functions together
 (defn get-and-insert-events [urls]
   (->>
    (map get-event-details urls)
@@ -250,6 +284,16 @@
    (d/transact (conn))
    deref
    :db-after))
+
+(defn get-and-insert-fighters [urls]
+  (->>
+   (map get-fighter-details)
+   (remove nil?)
+   (map make-event-tx)
+   (d/transact (conn))
+   deref
+   :db-after))
+
 
 (defn seed-events [starting-url]
   "Inserts all events into db for the first time, retuns a list of urls and a db"
@@ -269,14 +313,17 @@
        (d/q '[:find [?url ...] :where [?e :event/url ?url]]))
       (get-all-event-urls))))
 
+(defn insert-fighters-and-fights [row]
+  "Takes a row from :event :fight :fighters tree, create a map and inserts"
+  (when row
+    (insert-fighters (:fighters row))))
+
 (comment
   (defn insert-data []
     (->>
      (db-current?)
      (map scrape-links-from-card)
-     (map insert-fight-and-fights))))
-
-
+     (map insert-fighters-and-fights))))
 
 ;; 1. Initialize database
 ;;    - Bug in Datomic. TODO: Check transactors are up to date.
