@@ -11,7 +11,7 @@
   :db/ident :event/url
   :db/valueType :db.type/string
   :db/cardinality :db.cardinality/one
-  :db/doc "FightMetric URL"
+  :db/doc "FightMetric event URL"
   :db/unique :db.unique/identity
   :db.install/_attribute :db.part/db}
 
@@ -152,6 +152,14 @@
   :db.install/_attribute :db.part/db}
 
  {:db/id #db/id[:db.part/db]
+  :db/ident :fighter/url
+  :db/valueType :db.type/string
+  :db/cardinality :db.cardinality/one
+  :db/doc "FightMetric fighter URL"
+  :db/unique :db.unique/identity
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
   :db/ident :fighter/fights
   :db/valueType :db.type/ref
   :db/cardinality :db.cardinality/many
@@ -180,6 +188,14 @@
   :db/valueType :db.type/double
   :db/cardinality :db.cardinality/one
   :db/doc "Fighter weight in kg"
+  :db.install/_attribute :db.part/db
+  }
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fighter/reach
+  :db/valueType :db.type/double
+  :db/cardinality :db.cardinality/one
+  :db/doc "Fighter reach in cm"
   :db.install/_attribute :db.part/db
   }
 

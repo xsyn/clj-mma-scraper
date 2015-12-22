@@ -75,7 +75,8 @@
 
 (defn format-date [datestring]
   "Turns 'November 29, 2015' into #inst date format for datomic"
-  (c/to-date (tf/parse (tf/formatter "MMMM dd, YYYY") datestring)))
+  (let [cleandate (if (= datestring "--") "January 01, 1900" datestring)]
+    (c/to-date (tf/parse (tf/formatter "MMMM dd, YYYY") cleandate))))
 
 ;; HTML Utility functions
 
@@ -102,26 +103,31 @@
         (.contains name "Fight Night") :event.type/fightnight
         :else :event.type/ufc))
 
+(def weight-str->weight-type
+  {"Women's Strawweight"   :fight.weightclass/womansstrawweight
+   "Flyweight"             :fight.weightclass/flyweight
+   "Bantamweight"          :fight.weightclass/bantamweight
+   "Women's Bantamweight"  :fight.weightclass/womensbantamweight
+   "Featherweight"         :fight.weightclass/featherweight
+   "Lightweight"           :fight.weightclass/lightweight
+   "Welterweight"          :fight.weightclass/welterweight
+   "Middleweight"          :fight.weightclass/middleweight
+   "Light Heavyweight"     :fight.weightclass/lightheavyweight
+   })
+
 (defn extract-type-from-weight [weight]
-  (cond (= weight "Women's Strawweight") :fight.weightclass/womansstrawweight
-        (= weight "Flyweight") :fight.weightclass/flyweight
-        (= weight "Bantamweight") :fight.weightclass/bantamweight
-        (= weight "Women's Bantamweight") :fight.weightclass/womensbantamweight
-        (= weight "Featherweight") :fight.weightclass/featherweight
-        (= weight "Lightweight") :fight.weightclass/lightweight
-        (= weight "Welterweight") :fight.weightclass/welterweight
-        (= weight "Middleweight") :fight.weightclass/middleweight
-        (= weight "Light Heavyweight") :fight.weightclass/lightheavyweight
-        :else :fight.weightclass/heavyweight))
+  (or (get weight-str->weight-type weight)
+      :fight.weightclass/heavyweight))
+
+(defn extract-stance-from-string [stance]
+  (cond (= stance "Southpaw") :fighter.stance/southpaw
+        :else :fighter.stance/orthodox))
 
 (defn get-text-first [element path]
   (str/trim (html/text (first (html/select element path)))))
 
 (defn clean-detail-string [s]
   (str/trim (second (str/split s #":"))))
-
-(defn parse-int [s]
-  (Integer. (re-find  #"\d+" s )))
 
 (defn page-container [url]
   (html/select (fetch-body url) [:div.l-page__container]))
@@ -133,7 +139,37 @@
   (map clean-detail-string
        (map html/text (html/select html path))))
 
-;; CRUD functions
+(defn add-tx-id [m]
+  (assoc m :db/id (d/tempid :db.part/user)))
+
+(defn get-number [s]
+  (let [number (re-find #"\d+" s)]
+    (if (not-empty number)
+      (double (Integer/parseInt number))
+      (double 0))))
+
+(defn inches->cm [x]
+  (when x
+    (let [size (if (string? x)
+                 (get-number x)
+                 (double x))
+          inches 2.54]
+      (* inches size))))
+
+(defn feet->cm [s]
+  (if (= s "--") 0.00
+      (when s (let [size (map get-number (str/split s #"'"))
+                    feet 30.48]
+                (+ (* (first size) feet)
+                   (inches->cm (second size)))))))
+
+(defn pounds->kg [s]
+  (when s (let [weight (get-number s)
+                pounds 0.453592]
+            (* weight pounds))))
+
+
+;; Datomic query functions
 
 (defn get-all-event-urls[]
   "Get all the urls that are in the db"
@@ -147,33 +183,6 @@
          :where [?e :fighter/url ?url]] (d/db (conn)) url))
 
 ;; Scraping stuff
-
-(defn add-tx-id [m]
-  (assoc m :db/id (d/tempid :db.part/user)))
-
-(defn get-number [s]
-  (if (not-empty s)
-    (Integer/parseInt
-     (re-find #"\d+" s))
-    0))
-
-(defn inches->cm [x]
-  (let [size (if (string? x)
-               (get-number x)
-               x)
-        inches 2.54]
-    (* inches size)))
-
-(defn feet->cm [s]
-  (let [size (map get-number (str/split s #"'"))
-        feet 30.48]
-    (+ (* (first size) feet)
-       (inches->cm (second size)))))
-
-(defn pounds->kg [s]
-  (let [weight (get-number s)
-        pounds 0.453592]
-    (* weight pounds)))
 
 (defn get-event-details [event-url]
   "Takes in a url that maps to a FightMetric event, and creates a map of it's data."
@@ -196,23 +205,24 @@
 (defn get-fighter-details [fighter-url]
   "Returns a map after scraping fighters page"
   (when fighter-url
-    (let [b (page-container fighter-url)
-          name (html-get-name b)
-          nickname (get-content b [:p.b-content__Nickname]) ;; Check to see if empty
-          [height
-           weight
-           reach
-           stance
-           dob] (clean-box b [:div.b-fight-details.b-fight-details_margin-top :div.b-list__info-box.b-list__info-box_style_small-width.js-guide :ul :li])]
-      {:fighter/name name
-       :fighter/url fighter-url
-       :fighter/nickname nickname
-       :fighter/height (feet->cm height)
-       :fighter/weight (pounds->kg weight)
-       :fighter/reach (inches->cm reach)
-       :fighter/stance stance
-       :fighter/dob (format-date dob)
-       })))
+    (let [b (page-container fighter-url)]
+      (when b
+        (let [name (html-get-name b)
+              nickname (get-content b [:p.b-content__Nickname]) ;; Check to see if empty
+              [height
+               weight
+               reach
+               stance
+               dob] (clean-box b [:div.b-fight-details.b-fight-details_margin-top :div.b-list__info-box.b-list__info-box_style_small-width.js-guide :ul :li])]
+          {:fighter/name name
+           :fighter/url fighter-url
+           :fighter/nickname nickname
+           :fighter/height (feet->cm height)
+           :fighter/weight (pounds->kg weight)
+           :fighter/reach (inches->cm reach)
+           :fighter/stance (extract-stance-from-string stance)
+           :fighter/dob (format-date dob)
+           })))))
 
 (defn get-fight-items [body]
   "Passing in an html body, returns a map of fight-items, including round, time, time format, referee and details"
@@ -297,7 +307,7 @@
              b)))))
 
 
-;; Note: Abstract these functions together
+;; Transactional functions
 
 (defn def-tx-class [tx-class]
   (cond (= tx-class "event") get-event-details
@@ -325,7 +335,7 @@
 
 (defn update-fighters [events]
   (insert-tx
-   (flatten (map scrape-fighters-from-card))
+   (flatten (map scrape-fighters-from-card events))
    "fighter"))
 
 (defn update-fights [events]
@@ -340,8 +350,8 @@
    (update-fighters)
    ;; Get all event urls from database
    (get-all-event-urls)
-   (update-fights)
-   (map (fn [x] map insert-fighters-and-fights x))))
+   (comment (update-fights)
+            (map (fn [x] map insert-fighters-and-fights x)))))
 
 ;; 1. Initialize database
 ;;    - Bug in Datomic. TODO: Check transactors are up to date.
