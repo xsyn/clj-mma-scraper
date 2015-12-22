@@ -65,11 +65,13 @@
      (error (:throwable &throw-context) "unexpected error")
      (throw+))))
 
-(defn fetch-body [url]
+(defn fetch-body* [url]
   (let [check-url (get-url url)]
     (if (nil? check-url) nil
         (html/html-resource (java.io.StringReader.
                              (:body check-url))))))
+
+(def fetch-body (memoize fetch-body*))
 
 ;; Standard Utility functions
 
