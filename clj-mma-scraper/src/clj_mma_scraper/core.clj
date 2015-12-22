@@ -1,23 +1,13 @@
 (ns clj-mma-scraper.core
-  (:require [net.cgrand.enlive-html :as html]
-            [datomic.api :as d]
-            [clj-time.core :as t]
-            [clj-time.format :as tf]
+  (:require [clj-http.client :as client]
             [clj-time.coerce :as c]
-            [clojure.string :as str]
+            [clj-time.format :as tf]
             [clojure.set :as st]
-            [clojure.java.io :as io]
-            [clj-http.client :as client]
-            [clj-http.conn-mgr :as conn-mgr]
-            [taoensso.timbre :as timbre
-             :refer (log  trace  debug  info  warn  error  fatal  report
-                          logf tracef debugf infof warnf errorf fatalf reportf
-                          spy get-env log-env)]
-            [taoensso.timbre.profiling :as profiling
-             :refer (pspy pspy* profile defnp p p*)])
-  (:use [slingshot.slingshot :only [throw+ try+]])
-  (:import [java.net URI URL]))
-
+            [clojure.string :as str]
+            [datomic.api :as d]
+            [net.cgrand.enlive-html :as html]
+            [slingshot.slingshot :refer :all]
+            [taoensso.timbre :as timbre :refer [error warn]]))
 
 ;; Some initial definitions
 (def starting-url "http://www.fightmetric.com/statistics/events/completed?page=all")
