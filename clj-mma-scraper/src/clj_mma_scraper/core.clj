@@ -278,19 +278,6 @@
     (map clean-fighter-row
          (html/select body [:tbody :tr [:td (html/nth-of-type 2)]]))))
 
-(defn scrape-links-from-card [url]
-  "Returns a map of links, to the actual fights from a card, attached to fights. This could be two function, but I want to make a single call to the url."
-  (when url
-    (let [body (fetch-body url)]
-      (map #(assoc % :event url)
-           (map #(-> (into {} %))
-                (partition 2
-                           (interleave
-                            (map #(hash-map :fight %)
-                                 (map get-data-link (html/select body [:tbody :tr])))
-                            (map #(hash-map :fighters %)
-                                 (get-fighters-url-from-card-body body)))))))))
-
 (defn scrape-fighters-from-card [url]
   (when url
     (let [b (fetch-body url)]
