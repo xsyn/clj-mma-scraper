@@ -141,14 +141,21 @@
          :in $
          :where [_ :event/url ?url]] (d/db (conn))))
 
+(defn lookup-fighter-by-url [url]
+  (d/q '[:find ?e
+         :in $ ?url
+         :where [?e :fighter/url ?url]] (d/db (conn)) url))
+
 ;; Scraping stuff
 
-(defn make-event-tx [m]
+(defn add-tx-id [m]
   (assoc m :db/id (d/tempid :db.part/user)))
 
 (defn get-number [s]
-  (Integer/parseInt
-   (re-find #"\d+" s)))
+  (if (not-empty s)
+    (Integer/parseInt
+     (re-find #"\d+" s))
+    0))
 
 (defn inches->cm [x]
   (let [size (if (string? x)
@@ -212,12 +219,8 @@
   (let [b (html/select body [:i.b-fight-details__text-item])]
     (vec (map (fn [x] (str/trim (nth (:content x) 2))) b))))
 
-(defn get-stat-items [body]
-  (let [b] (html/select body [:section.b-fight-details__section.js-fight-section :table :tbody :tr])))
-
-(defn get-fighter [url]
-  "Gets a fighters details from a url"
-  )
+(comment (defn get-stat-items [body]
+           (let [b] (html/select body [:section.b-fight-details__section.js-fight-section :table :tbody :tr]))))
 
 (defn map-fighters [body]
   "Gets information about the fighter in a fight"
@@ -225,11 +228,7 @@
          (let [outcome (str/trim (first (:content (first (html/select row [:div :i])))))
                name (first (:content (first (html/select row [:div :div :h3 :a]))))
                fighter-url (get-in (first (html/select row [:div :div :h3 :a])) [:attrs :href])]
-           (zipmap [:outcome :name :url] [outcome name fighter-url]))) body))
-
-(defn map-stats [fighters fight-url]
-  "Take a seq of fighters and looks for their stats, on a particular fight page."
-  (map (fn [fighter] ) fighters))
+           [outcome name fighter-url])) body))
 
 ;; TODO: Get fighters and stats
 (defn get-fight [url]
@@ -239,17 +238,18 @@
           person-body (html/select body [:div.b-fight-details__person])
           details-body (html-select-first body [:div.b-fight-details__fight])
           weightclass (clean-weight-division (get-content body [:div.b-fight-details__fight-head :i]))
-          fighters (map-fighters person-body)
-          stats (map-stats fighters)
+          fighters (map-fighters person-body) ;; - want to return
+          ;; fighter datoms
+                                        ;stats (map-stats fighters)
           [rounds
            time
            time-format
            referee] (get-fight-items details-body)
-          method (str/trim (first (:content (second (html/select details-body [:i.b-fight-details__text-item_first :i])))))])))
-
-;; NOTE: Need to handle edge-cases for draw
-
-;; Build a map of all urls that we'll need to populate
+          method (str/trim (first (:content (second (html/select details-body [:i.b-fight-details__text-item_first :i])))))]
+      {:fight/weightclass weightclass
+       :fight/rounds rounds
+       :fight/method method
+       })))
 
 (defn clean-fighter-row [row]
   "Traverse the row to the correct attributes, flatten, pull out the links and remove nil"
@@ -277,6 +277,16 @@
                             (map #(hash-map :fighters %)
                                  (get-fighters-url-from-card-body body)))))))))
 
+(defn scrape-fighters-from-card [url]
+  (when url
+    (let [b (fetch-body url)]
+      (get-fighters-url-from-card-body b))))
+
+(defn scrape-fights-from-card [url]
+  (when url
+    (let [b (fetch-body url)]
+      (map get-data-link (html/select b [:tbody :tr])))))
+
 (defn get-all-events [url]
   "Returns a collection of event-urls, which are of all the UFC events ever."
   (let [body (fetch-body url)]
@@ -288,31 +298,19 @@
 
 
 ;; Note: Abstract these functions together
-(defn get-and-insert-events [urls]
-  (->>
-   (map get-event-details urls)
-   (remove nil?)
-   (map make-event-tx)
-   (d/transact (conn))
-   deref
-   :db-after))
 
-(defn get-and-insert-fighters [urls]
-  (->>
-   (map get-fighter-details)
-   (remove nil?)
-   (map make-event-tx)
-   (d/transact (conn))
-   deref
-   :db-after))
+(defn def-tx-class [tx-class]
+  (cond (= tx-class "event") get-event-details
+        (= tx-class "fight") get-fight
+        (= tx-class "fighter") get-fighter-details))
 
-
-(defn seed-events [starting-url]
-  "Inserts all events into db for the first time, retuns a list of urls and a db"
-  (->>
-   (get-all-events starting-url)
-   (get-and-insert-events)
-   (d/q '[:find ?e :where [?e :event/url ?url]])))
+(defn insert-tx [urls tx-class]
+  (->> (map (def-tx-class tx-class) urls)
+       (remove nil?)
+       (map add-tx-id)
+       (d/transact (conn))
+       deref
+       :db-after))
 
 (defn db-current? []
   "Checks the difference between the events on system, and the events on FightMetric, inserts the difference."
@@ -321,21 +319,29 @@
               (set (get-all-event-urls)))]
     (if (not-empty diff)
       (->>
-       (get-and-insert-events diff)
+       (insert-tx diff "event")
        (d/q '[:find [?url ...] :where [?e :event/url ?url]]))
       (get-all-event-urls))))
 
-(defn insert-fighters-and-fights [row]
-  "Takes a row from :event :fight :fighters tree, create a map and inserts"
-  (when row
-    (insert-fighters (:fighters row))))
+(defn update-fighters [events]
+  (insert-tx
+   (flatten (map scrape-fighters-from-card))
+   "fighter"))
 
-(comment
-  (defn insert-data []
-    (->>
-     (db-current?)
-     (map scrape-links-from-card)
-     (map insert-fighters-and-fights))))
+(defn update-fights [events]
+  (insert-tx (map scrape-fights-from-card events)
+             "fight"))
+
+(defn insert-data []
+  (->>
+   ;; Check that all events are up to date
+   (db-current?)
+   ;; Ensure we have update to date fight list
+   (update-fighters)
+   ;; Get all event urls from database
+   (get-all-event-urls)
+   (update-fights)
+   (map (fn [x] map insert-fighters-and-fights x))))
 
 ;; 1. Initialize database
 ;;    - Bug in Datomic. TODO: Check transactors are up to date.

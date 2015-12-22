@@ -126,6 +126,21 @@
   :db/doc "Fight loser"
   :db.install/_attribute :db.part/db}
 
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fight/draw?
+  :db/valueType :db.type/boolean
+  :db/cardinality :db.cardinality/one
+  :db/doc "Was the fight a draw?"
+  :db.install/_attribute :db.part/db}
+
+ {:db/id #db/id[:db.part/db]
+  :db/ident :fight/nocontest?
+  :db/valueType :db.type/boolean
+  :db/cardinality :db.cardinality/one
+  :db/doc "Was the fight a no contest?"
+  :db.install/_attribute :db.part/db}
+
+
  ;;------ Fighter Data Type
 
  {:db/id #db/id[:db.part/db]
