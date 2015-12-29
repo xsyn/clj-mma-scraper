@@ -296,12 +296,13 @@
         (= tx-class "fighter") get-fighter-details))
 
 (defn insert-tx [urls tx-class]
-  (->> (map (def-tx-class tx-class) urls)
-       (remove nil?)
-       (map add-tx-id)
-       (d/transact (conn))
-       deref
-       :db-after))
+  (do (timbre/info (str/join "Inserting class: " tx-class))
+      (->> (map (def-tx-class tx-class) urls)
+           (remove nil?)
+           (map add-tx-id)
+           (d/transact (conn))
+           deref
+           :db-after)))
 
 (defn db-current? []
   "Checks the difference between the events on system, and the events on FightMetric, inserts the difference."
