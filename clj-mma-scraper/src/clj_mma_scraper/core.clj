@@ -280,7 +280,7 @@
 
 (defn get-all-events [url]
   "Returns a collection of event-urls, which are of all the UFC events ever."
-  (let [body (fetch-body url)]
+  (let [body (fetch-body* url)]
     (when body
       (let [b (rest (html/select body [:table.b-statistics__table-events :tbody :tr.b-statistics__table-row]))]
         (map (fn [row] (get-href
